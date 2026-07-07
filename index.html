@@ -220,6 +220,31 @@
     #btn-draw:active:not(:disabled) { transform: scale(0.97); }
     #btn-draw:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
 
+    /* Reset button */
+    #btn-reset {
+      display: none;
+      margin: -6px auto 50px;
+      padding: 11px 36px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      border: 1.5px solid rgba(255,255,255,0.18);
+      border-radius: 100px;
+      background: transparent;
+      color: rgba(255,255,255,0.5);
+      cursor: pointer;
+      transition: transform 0.15s, border-color 0.2s, color 0.2s;
+      letter-spacing: 0.5px;
+      position: relative;
+      z-index: 1;
+    }
+    #btn-reset:hover {
+      border-color: rgba(255,255,255,0.42);
+      color: rgba(255,255,255,0.88);
+      transform: translateY(-2px);
+    }
+    #btn-reset:active { transform: scale(0.97); }
+    #btn-reset.visible { display: block; }
+
     /* Editable team cards */
     .team-card[contenteditable="true"] {
       cursor: text;
@@ -275,6 +300,7 @@
   <div id="status"></div>
 
   <button id="btn-draw">&#x1F3B2; Draw Teams</button>
+  <button id="btn-reset">&#x21A9;&#xFE0F; Reset</button>
 
   <script>
     let teamNames = ["Team 1", "Team 2", "Team 3", "Team 4", "Team 5", "Team 6"];
@@ -289,6 +315,7 @@
     const label20     = document.getElementById("label-20");
     const dividerEl   = document.getElementById("col-divider");
     const editHintEl  = document.getElementById("edit-hint");
+    const btnResetEl   = document.getElementById("btn-reset");
 
     let cards     = [];
     let animating = false;
@@ -382,6 +409,7 @@
       btnEl.disabled = true;
       statusEl.textContent = "";
       editHintEl.classList.add("hidden");
+      btnResetEl.classList.remove("visible");
 
       // sync any unsaved edits before animating
       cards.forEach((c, i) => {
@@ -476,6 +504,7 @@
         btnEl.disabled = false;
         statusEl.textContent = "Click to draw again";
         editHintEl.classList.remove("hidden");
+        btnResetEl.classList.add("visible");
       }, 1400);
     }
 
@@ -520,6 +549,12 @@
     }
 
     btnEl.addEventListener("click", startDraw);
+
+    btnResetEl.addEventListener("click", () => {
+      btnResetEl.classList.remove("visible");
+      statusEl.textContent = "";
+      initCards();
+    });
   </script>
 </body>
 </html>
