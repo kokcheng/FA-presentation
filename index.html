@@ -443,7 +443,7 @@
 
       const tickDown = setInterval(() => {
         count--;
-        countdownEl.textContent = count > 0 ? count : "&#x1F389;";
+        if (count > 0) countdownEl.textContent = count;
         if (count <= 0) clearInterval(tickDown);
       }, 1000);
 
@@ -505,6 +505,17 @@
         statusEl.textContent = "Click to draw again";
         editHintEl.classList.remove("hidden");
         btnResetEl.classList.add("visible");
+        cards.forEach((c, i) => {
+          c.contentEditable = "true";
+          c.addEventListener("keydown", e => {
+            if (e.key === "Enter") { e.preventDefault(); c.blur(); }
+          });
+          c.addEventListener("blur", () => {
+            const trimmed = c.textContent.trim();
+            teamNames[i] = trimmed || ("Team " + (i + 1));
+            c.textContent = teamNames[i];
+          });
+        });
       }, 1400);
     }
 
