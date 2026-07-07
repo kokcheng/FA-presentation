@@ -220,6 +220,31 @@
     #btn-draw:active:not(:disabled) { transform: scale(0.97); }
     #btn-draw:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
 
+    /* Editable team cards */
+    .team-card[contenteditable="true"] {
+      cursor: text;
+      outline: none;
+    }
+    .team-card[contenteditable="true"]:hover:not(:focus) {
+      border-color: rgba(167,139,250,0.55);
+    }
+    .team-card[contenteditable="true"]:focus {
+      border-color: rgba(167,139,250,0.9);
+      box-shadow: 0 5px 22px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.08), 0 0 0 2px rgba(167,139,250,0.28);
+    }
+
+    /* Edit hint */
+    #edit-hint {
+      font-size: 0.75rem;
+      color: rgba(255,255,255,0.22);
+      text-align: center;
+      margin-bottom: 4px;
+      position: relative;
+      z-index: 1;
+      letter-spacing: 0.3px;
+    }
+    #edit-hint.hidden { visibility: hidden; }
+
     /* Confetti */
     #confetti-canvas {
       position: fixed;
@@ -246,12 +271,13 @@
     <div id="col-divider"></div>
   </div>
 
+  <p id="edit-hint">&#x270F;&#xFE0F; Click any team name to rename it</p>
   <div id="status"></div>
 
   <button id="btn-draw">&#x1F3B2; Draw Teams</button>
 
   <script>
-    const TEAMS  = ["404", "ChatGPT", "Claude", "Mister RP", "Tung Tung", "Team X"];
+    let teamNames = ["Team 1", "Team 2", "Team 3", "Team 4", "Team 5", "Team 6"];
     const CARD_W = 148;
     const CARD_H = 52;
 
@@ -262,6 +288,7 @@
     const label19     = document.getElementById("label-19");
     const label20     = document.getElementById("label-20");
     const dividerEl   = document.getElementById("col-divider");
+    const editHintEl  = document.getElementById("edit-hint");
 
     let cards     = [];
     let animating = false;
@@ -307,15 +334,25 @@
       areaEl.style.height = "250px";
 
       const pos = gridPositions();
-      TEAMS.forEach((name, i) => {
+      teamNames.forEach((name, i) => {
         const el = document.createElement("div");
         el.className = "team-card";
         el.textContent = name;
+        el.contentEditable = "true";
         el.style.left = pos[i].x + "px";
         el.style.top  = pos[i].y + "px";
+        el.addEventListener("keydown", e => {
+          if (e.key === "Enter") { e.preventDefault(); el.blur(); }
+        });
+        el.addEventListener("blur", () => {
+          const trimmed = el.textContent.trim();
+          teamNames[i] = trimmed || ("Team " + (i + 1));
+          el.textContent = teamNames[i];
+        });
         areaEl.appendChild(el);
         cards.push(el);
       });
+      editHintEl.classList.remove("hidden");
     }
 
     initCards();
@@ -344,6 +381,13 @@
       animating = true;
       btnEl.disabled = true;
       statusEl.textContent = "";
+      editHintEl.classList.add("hidden");
+
+      // sync any unsaved edits before animating
+      cards.forEach((c, i) => {
+        const trimmed = c.textContent.trim();
+        if (trimmed) teamNames[i] = trimmed;
+      });
 
       // reset, but keep animating=true after
       areaEl.querySelectorAll(".team-card").forEach(c => c.remove());
@@ -353,7 +397,7 @@
       dividerEl.classList.remove("show");
       areaEl.style.height = "250px";
       const pos = gridPositions();
-      TEAMS.forEach((name, i) => {
+      teamNames.forEach((name, i) => {
         const el = document.createElement("div");
         el.className = "team-card";
         el.textContent = name;
@@ -388,12 +432,12 @@
     function reveal() {
       countdownEl.classList.remove("visible");
 
-      const drawn = shuffle(TEAMS);
+      const drawn = shuffle(teamNames);
       const l19   = drawn.slice(0, 3);
       const l20   = drawn.slice(3);
 
       const teamToCard = {};
-      TEAMS.forEach((t, i) => { teamToCard[t] = cards[i]; });
+      teamNames.forEach((t, i) => { teamToCard[t] = cards[i]; });
 
       const col = colPositions();
       const neededH = col.yCards[2] + CARD_H + 14;
@@ -431,6 +475,7 @@
         animating = false;
         btnEl.disabled = false;
         statusEl.textContent = "Click to draw again";
+        editHintEl.classList.remove("hidden");
       }, 1400);
     }
 
