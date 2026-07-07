@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Presentation Draw</title>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      min-height: 100vh;
+      background: #07071a;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      color: #f1f5f9;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(circle at 15% 50%, rgba(124,58,237,0.18) 0%, transparent 55%),
+        radial-gradient(circle at 85% 20%, rgba(236,72,153,0.12) 0%, transparent 55%),
+        radial-gradient(circle at 50% 85%, rgba(79,70,229,0.12) 0%, transparent 55%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    header {
+      text-align: center;
+      padding: 48px 20px 12px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .title {
+      font-size: clamp(2.2rem, 6vw, 4rem);
+      font-weight: 900;
+      letter-spacing: -2px;
+      background: linear-gradient(135deg, #a78bfa 0%, #ec4899 55%, #f59e0b 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .subtitle {
+      color: rgba(255,255,255,0.38);
+      font-size: 0.92rem;
+      margin-top: 10px;
+      letter-spacing: 0.4px;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 11px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 700;
+    }
+    .b19 { background: rgba(99,210,219,0.14); color: #63d2db; border: 1px solid rgba(99,210,219,0.3); }
+    .b20 { background: rgba(248,113,113,0.14); color: #f87171; border: 1px solid rgba(248,113,113,0.3); }
+
+    /* Countdown */
+    #countdown {
+      min-height: 90px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: clamp(4rem, 15vw, 8rem);
+      font-weight: 900;
+      background: linear-gradient(135deg, #f59e0b, #ef4444, #ec4899);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      opacity: 0;
+      transition: opacity 0.25s;
+      position: relative;
+      z-index: 1;
+      user-select: none;
+    }
+    #countdown.visible { opacity: 1; }
+
+    /* Cards area */
+    #cards-area {
+      position: relative;
+      width: min(560px, 94vw);
+      height: 250px;
+      margin: 8px 0 18px;
+      z-index: 1;
+      transition: height 0.55s ease;
+    }
+
+    /* Column labels */
+    .col-label {
+      position: absolute;
+      width: 150px;
+      text-align: center;
+      font-size: 1rem;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      top: 6px;
+      opacity: 0;
+      transform: translateY(-6px);
+      transition: opacity 0.45s ease, transform 0.45s ease;
+      z-index: 3;
+      padding: 4px 8px;
+      border-radius: 20px;
+    }
+    .col-label.show { opacity: 1; transform: translateY(0); }
+
+    #label-19 {
+      color: #63d2db;
+      background: rgba(99,210,219,0.1);
+      border: 1px solid rgba(99,210,219,0.3);
+    }
+    #label-20 {
+      color: #f87171;
+      background: rgba(248,113,113,0.1);
+      border: 1px solid rgba(248,113,113,0.3);
+    }
+
+    /* Vertical divider */
+    #col-divider {
+      position: absolute;
+      left: 50%;
+      top: 5%;
+      width: 1px;
+      height: 90%;
+      background: linear-gradient(to bottom,
+        transparent 0%,
+        rgba(255,255,255,0.12) 20%,
+        rgba(255,255,255,0.12) 80%,
+        transparent 100%);
+      transform: translateX(-50%);
+      opacity: 0;
+      transition: opacity 0.5s ease;
+      z-index: 0;
+    }
+    #col-divider.show { opacity: 1; }
+
+    /* Team cards */
+    .team-card {
+      position: absolute;
+      width: 148px;
+      background: linear-gradient(145deg, #1e1b4b 0%, #312e81 60%, #3730a3 100%);
+      border: 1px solid rgba(167,139,250,0.22);
+      border-radius: 14px;
+      padding: 15px 8px;
+      font-size: 1.05rem;
+      font-weight: 700;
+      text-align: center;
+      box-shadow: 0 5px 22px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.08);
+      transition:
+        left      0.55s cubic-bezier(0.34,1.3,0.64,1),
+        top       0.55s cubic-bezier(0.34,1.3,0.64,1),
+        transform 0.55s ease,
+        background 0.4s ease,
+        border-color 0.4s ease,
+        box-shadow 0.4s ease;
+      user-select: none;
+      z-index: 2;
+    }
+
+    .team-card.shuffling {
+      border-color: rgba(236,72,153,0.55);
+      box-shadow: 0 4px 28px rgba(236,72,153,0.35), 0 0 55px rgba(236,72,153,0.08);
+    }
+
+    .team-card.card-l19 {
+      background: linear-gradient(145deg, #0c3d3f, #0e5c63, #0a6e77);
+      border-color: rgba(99,210,219,0.55);
+      box-shadow: 0 5px 28px rgba(99,210,219,0.28), inset 0 1px 0 rgba(255,255,255,0.08);
+    }
+
+    .team-card.card-l20 {
+      background: linear-gradient(145deg, #3d0e0e, #621616, #7a1c1c);
+      border-color: rgba(248,113,113,0.55);
+      box-shadow: 0 5px 28px rgba(248,113,113,0.28), inset 0 1px 0 rgba(255,255,255,0.08);
+    }
+
+    /* Status */
+    #status {
+      font-size: 0.88rem;
+      color: rgba(255,255,255,0.3);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      min-height: 22px;
+      text-align: center;
+      position: relative;
+      z-index: 1;
+      margin-bottom: 6px;
+    }
+
+    /* Button */
+    #btn-draw {
+      display: block;
+      margin: 12px auto 50px;
+      padding: 17px 60px;
+      font-size: 1.2rem;
+      font-weight: 700;
+      border: none;
+      border-radius: 100px;
+      background: linear-gradient(135deg, #7c3aed, #ec4899);
+      color: #fff;
+      cursor: pointer;
+      box-shadow: 0 8px 32px rgba(124,58,237,0.45), inset 0 1px 0 rgba(255,255,255,0.12);
+      transition: transform 0.15s, box-shadow 0.15s, opacity 0.2s;
+      letter-spacing: 0.5px;
+      position: relative;
+      z-index: 1;
+    }
+    #btn-draw:hover:not(:disabled) {
+      transform: translateY(-3px) scale(1.03);
+      box-shadow: 0 14px 42px rgba(124,58,237,0.65);
+    }
+    #btn-draw:active:not(:disabled) { transform: scale(0.97); }
+    #btn-draw:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
+
+    /* Confetti */
+    #confetti-canvas {
+      position: fixed;
+      inset: 0;
+      width: 100%; height: 100%;
+      pointer-events: none;
+      z-index: 999;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="confetti-canvas"></canvas>
+
+  <header>
+    <div class="title">&#x1F3B2; Presentation Draw</div>
+    <p class="subtitle">Select teams for presentation on Lesson 19 and Lesson 20</p>
+  </header>
+
+  <div id="countdown"></div>
+
+  <div id="cards-area">
+    <div id="label-19" class="col-label">&#x1F4D6; Lesson 19</div>
+    <div id="label-20" class="col-label">&#x1F4D6; Lesson 20</div>
+    <div id="col-divider"></div>
+  </div>
+
+  <div id="status"></div>
+
+  <button id="btn-draw">&#x1F3B2; Draw Teams</button>
+
+  <script>
+    const TEAMS  = ["404", "ChatGPT", "Claude", "Mister RP", "Tung Tung", "Team X"];
+    const CARD_W = 148;
+    const CARD_H = 52;
+
+    const areaEl      = document.getElementById("cards-area");
+    const countdownEl = document.getElementById("countdown");
+    const statusEl    = document.getElementById("status");
+    const btnEl       = document.getElementById("btn-draw");
+    const label19     = document.getElementById("label-19");
+    const label20     = document.getElementById("label-20");
+    const dividerEl   = document.getElementById("col-divider");
+
+    let cards     = [];
+    let animating = false;
+
+    function colPositions() {
+      const w  = areaEl.clientWidth;
+      const cx1 = w * 0.26;
+      const cx2 = w * 0.74;
+      const xL  = cx1 - CARD_W / 2;
+      const xR  = cx2 - CARD_W / 2;
+      const LABEL_H = 36;
+      const GAP     = 12;
+      const yBase   = LABEL_H + 12;
+      const yStep   = CARD_H + GAP;
+      return {
+        xL, xR,
+        yCards: [yBase, yBase + yStep, yBase + 2 * yStep],
+        labelXL: cx1 - 75,
+        labelXR: cx2 - 75
+      };
+    }
+
+    function gridPositions() {
+      const w    = areaEl.clientWidth;
+      const cols = 3;
+      const gapX = (w - cols * CARD_W) / (cols + 1);
+      const pos  = [];
+      [0, 1].forEach(row => {
+        for (let col = 0; col < cols; col++) {
+          pos.push({ x: gapX + col * (CARD_W + gapX), y: 20 + row * (CARD_H + 36) });
+        }
+      });
+      return pos;
+    }
+
+    function initCards() {
+      if (animating) return;
+      areaEl.querySelectorAll(".team-card").forEach(c => c.remove());
+      cards = [];
+      label19.classList.remove("show");
+      label20.classList.remove("show");
+      dividerEl.classList.remove("show");
+      areaEl.style.height = "250px";
+
+      const pos = gridPositions();
+      TEAMS.forEach((name, i) => {
+        const el = document.createElement("div");
+        el.className = "team-card";
+        el.textContent = name;
+        el.style.left = pos[i].x + "px";
+        el.style.top  = pos[i].y + "px";
+        areaEl.appendChild(el);
+        cards.push(el);
+      });
+    }
+
+    initCards();
+
+    function shuffle(arr) {
+      const a = [...arr];
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    }
+
+    function scatter() {
+      const maxX = areaEl.clientWidth  - CARD_W - 8;
+      const maxY = areaEl.clientHeight - CARD_H - 8;
+      cards.forEach(c => {
+        c.style.left      = (6 + Math.random() * maxX) + "px";
+        c.style.top       = (6 + Math.random() * maxY) + "px";
+        c.style.transform = "rotate(" + ((Math.random() - 0.5) * 30) + "deg)";
+        c.style.zIndex    = Math.floor(Math.random() * 6) + 1;
+      });
+    }
+
+    function startDraw() {
+      animating = true;
+      btnEl.disabled = true;
+      statusEl.textContent = "";
+
+      // reset, but keep animating=true after
+      areaEl.querySelectorAll(".team-card").forEach(c => c.remove());
+      cards = [];
+      label19.classList.remove("show");
+      label20.classList.remove("show");
+      dividerEl.classList.remove("show");
+      areaEl.style.height = "250px";
+      const pos = gridPositions();
+      TEAMS.forEach((name, i) => {
+        const el = document.createElement("div");
+        el.className = "team-card";
+        el.textContent = name;
+        el.style.left = pos[i].x + "px";
+        el.style.top  = pos[i].y + "px";
+        areaEl.appendChild(el);
+        cards.push(el);
+      });
+
+      cards.forEach(c => c.classList.add("shuffling"));
+
+      let count = 5;
+      countdownEl.textContent = count;
+      countdownEl.classList.add("visible");
+
+      const tickDown = setInterval(() => {
+        count--;
+        countdownEl.textContent = count > 0 ? count : "&#x1F389;";
+        if (count <= 0) clearInterval(tickDown);
+      }, 1000);
+
+      const shuffleTick = setInterval(scatter, 280);
+
+      setTimeout(() => {
+        clearInterval(shuffleTick);
+        clearInterval(tickDown);
+        cards.forEach(c => c.classList.remove("shuffling"));
+        setTimeout(reveal, 350);
+      }, 5000);
+    }
+
+    function reveal() {
+      countdownEl.classList.remove("visible");
+
+      const drawn = shuffle(TEAMS);
+      const l19   = drawn.slice(0, 3);
+      const l20   = drawn.slice(3);
+
+      const teamToCard = {};
+      TEAMS.forEach((t, i) => { teamToCard[t] = cards[i]; });
+
+      const col = colPositions();
+      const neededH = col.yCards[2] + CARD_H + 14;
+      areaEl.style.height = neededH + "px";
+
+      label19.style.left = col.labelXL + "px";
+      label20.style.left = col.labelXR + "px";
+
+      l19.forEach((team, i) => {
+        const c = teamToCard[team];
+        c.style.transform = "";
+        c.style.zIndex    = i + 1;
+        c.style.left      = col.xL + "px";
+        c.style.top       = col.yCards[i] + "px";
+        setTimeout(() => c.classList.add("card-l19"), 300 + i * 80);
+      });
+
+      l20.forEach((team, i) => {
+        const c = teamToCard[team];
+        c.style.transform = "";
+        c.style.zIndex    = i + 1;
+        c.style.left      = col.xR + "px";
+        c.style.top       = col.yCards[i] + "px";
+        setTimeout(() => c.classList.add("card-l20"), 300 + i * 80);
+      });
+
+      setTimeout(() => {
+        label19.classList.add("show");
+        label20.classList.add("show");
+        dividerEl.classList.add("show");
+        launchConfetti();
+      }, 600);
+
+      setTimeout(() => {
+        animating = false;
+        btnEl.disabled = false;
+        statusEl.textContent = "Click to draw again";
+      }, 1400);
+    }
+
+    function launchConfetti() {
+      const canvas = document.getElementById("confetti-canvas");
+      const ctx    = canvas.getContext("2d");
+      canvas.width  = window.innerWidth;
+      canvas.height = window.innerHeight;
+      const COLORS = ["#a78bfa","#ec4899","#f59e0b","#34d399","#60a5fa","#f87171","#fbbf24","#a3e635"];
+      const particles = Array.from({ length: 160 }, () => ({
+        x: Math.random() * canvas.width,
+        y: -20 - Math.random() * 120,
+        vx: (Math.random() - 0.5) * 5.5,
+        vy: Math.random() * 3.5 + 1.5,
+        w: Math.random() * 11 + 5,
+        h: Math.random() * 7 + 3,
+        rot: Math.random() * 360,
+        rotV: (Math.random() - 0.5) * 9,
+        col: COLORS[Math.floor(Math.random() * COLORS.length)],
+        circ: Math.random() > 0.65
+      }));
+      let frame = 0;
+      const MAX = 210;
+      (function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const alpha = Math.max(0, 1 - frame / MAX);
+        particles.forEach(p => {
+          p.x += p.vx; p.y += p.vy; p.vy += 0.055; p.rot += p.rotV;
+          ctx.save();
+          ctx.globalAlpha = alpha;
+          ctx.fillStyle = p.col;
+          ctx.translate(p.x, p.y);
+          ctx.rotate(p.rot * Math.PI / 180);
+          if (p.circ) { ctx.beginPath(); ctx.arc(0,0,p.w/2,0,Math.PI*2); ctx.fill(); }
+          else { ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h); }
+          ctx.restore();
+        });
+        frame++;
+        if (frame < MAX) requestAnimationFrame(draw);
+        else ctx.clearRect(0, 0, canvas.width, canvas.height);
+      })();
+    }
+
+    btnEl.addEventListener("click", startDraw);
+  </script>
+</body>
+</html>
